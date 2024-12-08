@@ -51,7 +51,19 @@ async function run() {
         const result = await visaCollection.insertOne(newVisa);
         res.send(result);
     });
-    
+    app.post("/applications", async (req, res) => {
+      try {
+        const applicationData = req.body;
+        const result = await client
+          .db("visaDB")
+          .collection("applications")
+          .insertOne(applicationData);
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("Error saving application:", error);
+        res.status(500).send({ message: "Failed to save application" });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
