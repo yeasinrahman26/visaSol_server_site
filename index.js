@@ -26,13 +26,23 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const visaCollection = client.db("visaDB").collection("visa");
+    const applicationCollection = client
+      .db("visaDB")
+      .collection("applications");
     
 
     app.get("/visas", async (req, res) => {
       const cursor = visaCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.get("/visa", async (req, res) => {
+      const email = req.query.email;
+      let query = { email: email };
+      const cursor = visaCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -51,22 +61,63 @@ async function run() {
         const result = await visaCollection.insertOne(newVisa);
         res.send(result);
     });
-    app.post("/applications", async (req, res) => {
-      try {
-        const applicationData = req.body;
-        const result = await client
-          .db("visaDB")
-          .collection("applications")
-          .insertOne(applicationData);
-        res.status(201).send(result);
-      } catch (error) {
-        console.error("Error saving application:", error);
-        res.status(500).send({ message: "Failed to save application" });
-      }
+
+    // add visa updated 
+     app.put("/visas/:id", async (req, res) => {
+    const id = req.params.id;
+    const updatedVisa = req.body;
+
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+      $set: updatedVisa,
+    };
+
+    const result = await visaCollection.updateOne(filter, updateDoc);
+    res.send(result)
+
+  });
+
+
+    // added visa delete
+    app.delete("/visas/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await visaCollection.deleteOne(query);
+      res.send(result);
     });
 
+
+
+
+    // application post
+    app.post("/applications", async (req, res) => {
+        const applicationData = req.body;
+        const result = await applicationCollection.insertOne(applicationData);
+        res.status(201).send(result);
+
+    });
+    // my visa application get
+    app.get("/applications", async (req, res) => {
+      const email = req.query.email;
+      let query = { email: email };
+      const cursor = applicationCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // visa application cancel
+    app.delete("/applications/:id",async (req,res)=>{
+      const id=req.params.id;
+      const query ={_id: new ObjectId(id)};
+      const result=await applicationCollection.deleteOne(query)
+      res.send(result)
+    });
+
+    
+
+
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
